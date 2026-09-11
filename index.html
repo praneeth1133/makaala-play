@@ -3,35 +3,36 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | Makaala</title>
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes, viewport-fit=cover">
+    <title>Makaala</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1E0C08; }
+      #unity-container { position: fixed; inset: 0; width: 100%; height: 100%; }
+      #unity-canvas { width: 100%; height: 100%; display: block; background: #1E0C08; outline: none; }
+      #unity-loading-bar { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: none; text-align: center; color: #F2D98A; font-family: Georgia, "Times New Roman", serif; }
+      #unity-loading-title { font-size: 42px; letter-spacing: 6px; text-transform: uppercase; margin-bottom: 8px; text-shadow: 0 2px 12px rgba(0,0,0,0.7); }
+      #unity-loading-sub { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.75; margin-bottom: 26px; }
+      #unity-progress-bar-empty { width: 260px; height: 10px; margin: 0 auto; border: 1px solid #C9A24A; border-radius: 6px; background: rgba(0,0,0,0.45); overflow: hidden; }
+      #unity-progress-bar-full { width: 0%; height: 100%; background: linear-gradient(90deg, #B8892E, #F7E7A8, #B8892E); border-radius: 6px; transition: width 120ms linear; }
+      #unity-warning { position: absolute; left: 50%; top: 5%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: #fff; padding: 6px 12px; border-radius: 6px; display: none; font-family: sans-serif; }
+    </style>
   </head>
   <body>
-    <div id="unity-container" class="unity-desktop">
-      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
+    <div id="unity-container">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
       <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
+        <div id="unity-loading-title">Makaala</div>
+        <div id="unity-loading-sub">Mancala &amp; Kalah</div>
         <div id="unity-progress-bar-empty">
           <div id="unity-progress-bar-full"></div>
         </div>
       </div>
       <div id="unity-warning"> </div>
-      <div id="unity-footer">
-        <div id="unity-logo-title-footer"></div>
-        <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">Makaala</div>
-      </div>
     </div>
     <script>
       var canvas = document.querySelector("#unity-canvas");
 
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
       function unityShowBanner(msg, type) {
         var warningBanner = document.querySelector("#unity-warning");
         function updateBannerVisibility() {
@@ -40,9 +41,9 @@
         var div = document.createElement('div');
         div.innerHTML = msg;
         warningBanner.appendChild(div);
-        if (type == 'error') div.style = 'background: red; padding: 10px;';
+        if (type == 'error') div.style = 'background: #7a1f1f; padding: 10px;';
         else {
-          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+          if (type == 'warning') div.style = 'background: #6b5a12; padding: 10px;';
           setTimeout(function() {
             warningBanner.removeChild(div);
             updateBannerVisibility();
@@ -61,52 +62,14 @@
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Makaala Games",
         productName: "Makaala",
-        productVersion: "1.1.8",
+        productVersion: "1.1.9",
         showBanner: unityShowBanner,
-        // errorHandler: function(err, url, line) {
-        //    alert("error " + err + " occurred at line " + line);
-        //    // Return 'true' if you handled this error and don't want Unity
-        //    // to process it further, 'false' otherwise.
-        //    return true;
-        // },
       };
 
-      // By default, Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
-
-      // If you would like all file writes inside Unity Application.persistentDataPath
-      // directory to automatically persist so that the contents are remembered when
-      // the user revisits the site the next time, uncomment the following line:
-      // config.autoSyncPersistentDataPath = true;
-      // This autosyncing is currently not the default behavior to avoid regressing
-      // existing user projects that might rely on the earlier manual
-      // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
-      // expected to change.
-
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-        document.querySelector("#unity-container").className = "unity-mobile";
-        canvas.className = "unity-mobile";
-
-        // To lower canvas resolution on mobile devices to gain some
-        // performance, uncomment the following line:
-        // config.devicePixelRatio = 1;
-
-
-      } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-        canvas.style.width = "960px";
-        canvas.style.height = "600px";
-      }
+      // The canvas always fills the browser window (desktop and mobile); Unity keeps the
+      // render target matched to the canvas DOM size, so resizing the window just works.
+      // Cap the device pixel ratio on very dense screens to keep the frame rate up.
+      if (window.devicePixelRatio > 2) config.devicePixelRatio = 2;
 
       document.querySelector("#unity-loading-bar").style.display = "block";
 
@@ -115,19 +78,18 @@
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
-              }).then((unityInstance) => {
-                document.querySelector("#unity-loading-bar").style.display = "none";
-                document.querySelector("#unity-fullscreen-button").onclick = () => {
-                  unityInstance.SetFullscreen(1);
-                };
-
-              }).catch((message) => {
-                alert(message);
-              });
-            };
-
+        }).then((unityInstance) => {
+          document.querySelector("#unity-loading-bar").style.display = "none";
+          window.makaalaUnity = unityInstance;
+          // Double-tap / F11-style: F key toggles browser fullscreen for the game.
+          window.addEventListener("keydown", (e) => {
+            if (e.key === "F11" || (e.key.toLowerCase() === "f" && e.ctrlKey)) { e.preventDefault(); unityInstance.SetFullscreen(1); }
+          });
+        }).catch((message) => {
+          alert(message);
+        });
+      };
       document.body.appendChild(script);
-
     </script>
   </body>
 </html>
