@@ -33,6 +33,87 @@
       #unity-progress-bar-full { width: 0%; height: 100%; background: linear-gradient(90deg, #B8892E, #F7E7A8, #B8892E); border-radius: 6px; transition: width 120ms linear; }
       #unity-warning { position: absolute; left: 50%; top: 5%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: #fff; padding: 6px 12px; border-radius: 6px; display: none; font-family: sans-serif; }
     </style>
+    <script>
+      // HTML5 portal ads. The portal is picked from the host name or "?portal=" for testing:
+      //   crazygames        -> CrazyGames SDK v3
+      //   gamedistribution  -> GameDistribution SDK (needs &gameid=<GUID>)
+      // On our own hosting no SDK loads, "ready" stays false and the game runs without ads.
+      window.makaalaPortal = (function () {
+        var q = new URLSearchParams(location.search);
+        var host = location.hostname || '';
+        var kind = q.get('portal') ||
+          (/crazygames/i.test(host) ? 'crazygames' :
+          (/gamedistribution|gamemonetize|gamepix/i.test(host) ? 'gamedistribution' : ''));
+        var api = { ready: false, kind: kind || 'none', pending: null };
+
+        function send(method, arg) {
+          try { if (window.makaalaUnity) window.makaalaUnity.SendMessage('MakaalaPortalAds', method, arg || ''); }
+          catch (e) { console.warn('[portal] callback failed', e); }
+        }
+        function finishInterstitial() { if (api.pending === 'interstitial') { api.pending = null; send('OnInterstitialDone'); } }
+        function finishRewarded(earned) { if (api.pending === 'rewarded') { api.pending = null; send('OnRewardedDone', earned ? '1' : '0'); } }
+
+        api.showInterstitial = function () { api.pending = 'interstitial'; api.request('midgame'); };
+        api.showRewarded = function () { api.pending = 'rewarded'; api.request('rewarded'); };
+        api.request = function () { finishInterstitial(); finishRewarded(false); };
+        api.gameplay = function () {};
+        api.happyTime = function () {};
+
+        function loadScript(src, onload) {
+          var s = document.createElement('script');
+          s.src = src; s.async = true; s.onload = onload;
+          s.onerror = function () { console.warn('[portal] SDK failed to load:', src); };
+          document.head.appendChild(s);
+        }
+
+        if (kind === 'crazygames') {
+          loadScript('https://sdk.crazygames.com/crazygames-sdk-v3.js', function () {
+            var sdk = window.CrazyGames && window.CrazyGames.SDK;
+            if (!sdk) return;
+            sdk.init().then(function () {
+              api.ready = true;
+              api.request = function (type) {
+                sdk.ad.requestAd(type === 'rewarded' ? 'rewarded' : 'midgame', {
+                  adFinished: function () { finishInterstitial(); finishRewarded(true); },
+                  adError: function () { finishInterstitial(); finishRewarded(false); }
+                });
+              };
+              api.gameplay = function (playing) { try { playing ? sdk.game.gameplayStart() : sdk.game.gameplayStop(); } catch (e) {} };
+              api.happyTime = function () { try { sdk.game.happytime(); } catch (e) {} };
+              console.log('[portal] CrazyGames SDK ready');
+            }).catch(function (e) { console.warn('[portal] CrazyGames init failed', e); });
+          });
+        } else if (kind === 'gamedistribution') {
+          window.GD_OPTIONS = {
+            gameId: q.get('gameid') || '00000000000000000000000000000000',
+            onEvent: function (event) {
+              switch (event.name) {
+                case 'SDK_GAME_START': finishInterstitial(); finishRewarded(api.rewardGranted === true); api.rewardGranted = false; break;
+                case 'SDK_REWARDED_WATCH_COMPLETE': api.rewardGranted = true; break;
+                case 'SDK_READY': api.ready = true; console.log('[portal] GameDistribution SDK ready'); break;
+                case 'SDK_ERROR': finishInterstitial(); finishRewarded(false); break;
+              }
+            }
+          };
+          loadScript('https://html5.api.gamedistribution.com/main.min.js', function () {
+            api.request = function (type) {
+              try {
+                if (type === 'rewarded' && window.gdsdk && window.gdsdk.preloadAd) {
+                  window.gdsdk.preloadAd('rewarded').then(function () { window.gdsdk.showAd('rewarded'); })
+                    .catch(function () { finishRewarded(false); });
+                } else if (window.gdsdk) {
+                  window.gdsdk.showAd();
+                } else { finishInterstitial(); finishRewarded(false); }
+              } catch (e) { finishInterstitial(); finishRewarded(false); }
+            };
+            api.gameplay = function (playing) {
+              try { if (window.gdsdk) playing ? window.gdsdk.preloadAd('interstitial') : null; } catch (e) {}
+            };
+          });
+        }
+        return api;
+      })();
+    </script>
   </head>
   <body>
     <div id="unity-container">
@@ -78,7 +159,7 @@
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Makaala Games",
         productName: "Makaala",
-        productVersion: "1.2.2",
+        productVersion: "1.2.3",
         showBanner: unityShowBanner,
       };
 
